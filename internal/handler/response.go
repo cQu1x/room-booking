@@ -55,7 +55,6 @@ func writeInternalError(w http.ResponseWriter, err error) {
 	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
 }
 
-// httpError is satisfied by entity.DomainError via duck typing.
 type httpError interface {
 	HTTPStatus() int
 	HTTPCode() string
