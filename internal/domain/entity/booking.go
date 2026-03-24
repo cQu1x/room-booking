@@ -14,9 +14,10 @@ const (
 )
 
 type Booking struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	SlotID    uuid.UUID
-	Status    BookingStatus
-	createdAt time.Time
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	SlotID         uuid.UUID
+	Status         BookingStatus
+	ConferenceLink *string
+	CreatedAt      time.Time
 }

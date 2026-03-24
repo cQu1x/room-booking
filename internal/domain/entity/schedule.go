@@ -1,3 +1,11 @@
 package entity
 
-type Schedule struct{}
+import "github.com/google/uuid"
+
+type Schedule struct {
+	ID         uuid.UUID
+	RoomID     uuid.UUID
+	DaysOfWeek []int
+	StartTime  string
+	EndTime    string
+}
