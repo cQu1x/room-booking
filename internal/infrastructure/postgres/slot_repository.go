@@ -14,10 +14,12 @@ type SlotRepository struct {
 	db *pgxpool.Pool
 }
 
+// NewSlotRepository создаёт репозиторий слотов на основе пула соединений.
 func NewSlotRepository(db *pgxpool.Pool) *SlotRepository {
 	return &SlotRepository{db: db}
 }
 
+// CreateSlots пакетно вставляет слоты, игнорируя дубликаты (ON CONFLICT DO NOTHING).
 func (r *SlotRepository) CreateSlots(ctx context.Context, slots []entity.Slot) error {
 	if len(slots) == 0 {
 		return nil
@@ -30,7 +32,7 @@ func (r *SlotRepository) CreateSlots(ctx context.Context, slots []entity.Slot) e
 		)
 	}
 	br := r.db.SendBatch(ctx, batch)
-	defer br.Close()
+	defer func() { _ = br.Close() }()
 	for range slots {
 		if _, err := br.Exec(); err != nil {
 			return err
@@ -39,6 +41,7 @@ func (r *SlotRepository) CreateSlots(ctx context.Context, slots []entity.Slot) e
 	return nil
 }
 
+// GetMaxSlotDate возвращает максимальную дату начала слота для переговорки или nil, если слотов нет.
 func (r *SlotRepository) GetMaxSlotDate(ctx context.Context, roomID uuid.UUID) (*time.Time, error) {
 	const query = `SELECT MAX(start_time) FROM slots WHERE room_id = $1`
 	var maxDate *time.Time
@@ -48,6 +51,7 @@ func (r *SlotRepository) GetMaxSlotDate(ctx context.Context, roomID uuid.UUID) (
 	return maxDate, nil
 }
 
+// GetSlotByID возвращает слот по идентификатору.
 func (r *SlotRepository) GetSlotByID(ctx context.Context, id uuid.UUID) (*entity.Slot, error) {
 	const query = `SELECT id, room_id, start_time, end_time FROM slots WHERE id = $1`
 	var slot entity.Slot
@@ -57,6 +61,7 @@ func (r *SlotRepository) GetSlotByID(ctx context.Context, id uuid.UUID) (*entity
 	return &slot, nil
 }
 
+// ListAvailableSlots возвращает незабронированные слоты переговорки на указанную дату.
 func (r *SlotRepository) ListAvailableSlots(ctx context.Context, roomID uuid.UUID, date time.Time) ([]entity.Slot, error) {
 	const query = `
 		SELECT s.id, s.room_id, s.start_time, s.end_time

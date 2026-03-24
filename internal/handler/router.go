@@ -16,6 +16,7 @@ type Handlers struct {
 	Booking  *BookingHandler
 }
 
+// NewRouter собирает HTTP-маршрутизатор и подключает все обработчики с нужными middleware.
 func NewRouter(h Handlers, tokenManager *jwtpkg.TokenManager) http.Handler {
 	mux := http.NewServeMux()
 

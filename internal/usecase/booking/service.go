@@ -14,6 +14,7 @@ type Service struct {
 	slotRepo    ports.SlotRepository
 }
 
+// NewService создаёт сервис бронирований.
 func NewService(bookingRepo ports.BookingRepository, slotRepo ports.SlotRepository) *Service {
 	return &Service{
 		bookingRepo: bookingRepo,
@@ -21,6 +22,7 @@ func NewService(bookingRepo ports.BookingRepository, slotRepo ports.SlotReposito
 	}
 }
 
+// Create создаёт бронирование на слот от имени пользователя.
 func (s *Service) Create(ctx context.Context, userID uuid.UUID, slotID uuid.UUID, createConferenceLink bool) (*entity.Booking, error) {
 	slot, err := s.slotRepo.GetSlotByID(ctx, slotID)
 	if err != nil {
@@ -48,7 +50,6 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, slotID uuid.UUID
 	}
 
 	if createConferenceLink {
-		// Mock conference link — a real implementation would call an external service.
 		link := "https://conference.example.com/meeting/" + uuid.New().String()
 		booking.ConferenceLink = &link
 	}
@@ -60,8 +61,7 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, slotID uuid.UUID
 	return booking, nil
 }
 
-// Cancel cancels a booking idempotently. If the booking is already cancelled,
-// it returns the current state without error (200).
+// Cancel отменяет бронирование. Повторная отмена уже отменённого бронирования не возвращает ошибку.
 func (s *Service) Cancel(ctx context.Context, userID uuid.UUID, bookingID uuid.UUID) (*entity.Booking, error) {
 	booking, err := s.bookingRepo.GetBookingByID(ctx, bookingID)
 	if err != nil {
@@ -72,7 +72,6 @@ func (s *Service) Cancel(ctx context.Context, userID uuid.UUID, bookingID uuid.U
 		return nil, entity.ErrForbidden
 	}
 
-	// Idempotent: return current state if already cancelled
 	if booking.Status == entity.BookingStatusCancelled {
 		return booking, nil
 	}
@@ -85,10 +84,12 @@ func (s *Service) Cancel(ctx context.Context, userID uuid.UUID, bookingID uuid.U
 	return booking, nil
 }
 
+// ListAll возвращает постраничный список всех бронирований и общее количество записей.
 func (s *Service) ListAll(ctx context.Context, page, pageSize int) ([]entity.Booking, int, error) {
 	return s.bookingRepo.ListAllBookings(ctx, page, pageSize)
 }
 
+// ListMy возвращает будущие бронирования текущего пользователя.
 func (s *Service) ListMy(ctx context.Context, userID uuid.UUID) ([]entity.Booking, error) {
 	return s.bookingRepo.ListByUserID(ctx, userID)
 }

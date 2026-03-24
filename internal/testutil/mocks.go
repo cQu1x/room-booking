@@ -1,4 +1,3 @@
-// Package testutil provides test doubles for unit testing use cases.
 package testutil
 
 import (
@@ -9,8 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// MockRoomRepo is a configurable test double for ports.RoomRepository.
-// Set the function fields you need; unset ones panic if called.
 type MockRoomRepo struct {
 	CreateRoomFn  func(ctx context.Context, room *entity.Room) (*entity.Room, error)
 	GetRoomByIDFn func(ctx context.Context, id uuid.UUID) (*entity.Room, error)
@@ -29,7 +26,6 @@ func (m *MockRoomRepo) ListRooms(ctx context.Context) ([]entity.Room, error) {
 	return m.ListRoomsFn(ctx)
 }
 
-// MockScheduleRepo is a configurable test double for ports.ScheduleRepository.
 type MockScheduleRepo struct {
 	CreateScheduleFn      func(ctx context.Context, schedule *entity.Schedule) error
 	GetScheduleByRoomIDFn func(ctx context.Context, roomID uuid.UUID) (*entity.Schedule, error)
@@ -43,7 +39,6 @@ func (m *MockScheduleRepo) GetScheduleByRoomID(ctx context.Context, roomID uuid.
 	return m.GetScheduleByRoomIDFn(ctx, roomID)
 }
 
-// MockSlotRepo is a configurable test double for ports.SlotRepository.
 type MockSlotRepo struct {
 	CreateSlotsFn        func(ctx context.Context, slots []entity.Slot) error
 	GetSlotByIDFn        func(ctx context.Context, id uuid.UUID) (*entity.Slot, error)
@@ -67,7 +62,6 @@ func (m *MockSlotRepo) ListAvailableSlots(ctx context.Context, roomID uuid.UUID,
 	return m.ListAvailableSlotsFn(ctx, roomID, date)
 }
 
-// MockBookingRepo is a configurable test double for ports.BookingRepository.
 type MockBookingRepo struct {
 	CreateBookingFn   func(ctx context.Context, booking *entity.Booking) error
 	GetBookingByIDFn  func(ctx context.Context, id uuid.UUID) (*entity.Booking, error)
@@ -101,7 +95,6 @@ func (m *MockBookingRepo) IsSlotBooked(ctx context.Context, slotID uuid.UUID) (b
 	return m.IsSlotBookedFn(ctx, slotID)
 }
 
-// MockUserRepo is a configurable test double for ports.UserRepository.
 type MockUserRepo struct {
 	CreateUserFn     func(ctx context.Context, user *entity.User) (entity.User, error)
 	GetUserByEmailFn func(ctx context.Context, email string) (*entity.User, error)
@@ -120,7 +113,6 @@ func (m *MockUserRepo) GetUserByID(ctx context.Context, id uuid.UUID) (*entity.U
 	return m.GetUserByIDFn(ctx, id)
 }
 
-// MockSlotService is a configurable test double for ports.SlotService.
 type MockSlotService struct {
 	ListAvailableFn      func(ctx context.Context, roomID uuid.UUID, date time.Time) ([]entity.Slot, error)
 	GenerateForScheduleFn func(ctx context.Context, schedule *entity.Schedule, from, to time.Time) error

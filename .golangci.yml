@@ -1,0 +1,34 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - govet         
+    - staticcheck     
+    - unused         
+    - ineffassign     
+    - errorlint      
+    - bodyclose      
+    - copyloopvar     
+    - durationcheck  
+    - gochecksumtype 
+    - gocritic        
+    - misspell        
+    - exhaustive      
+    - errcheck
+
+linters-settings:
+  exhaustive:
+    default-signifies-exhaustive: true
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+
+issues:
+  max-same-issues: 3
+
+  exclude-rules:
+    - path: docs/
+      linters: [errcheck, staticcheck, unused, gocritic]

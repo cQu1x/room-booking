@@ -11,6 +11,7 @@ type ScheduleHandler struct {
 	scheduleSvc ports.ScheduleService
 }
 
+// NewScheduleHandler создаёт обработчик расписаний.
 func NewScheduleHandler(scheduleSvc ports.ScheduleService) *ScheduleHandler {
 	return &ScheduleHandler{scheduleSvc: scheduleSvc}
 }

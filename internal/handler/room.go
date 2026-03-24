@@ -10,6 +10,7 @@ type RoomHandler struct {
 	roomSvc ports.RoomService
 }
 
+// NewRoomHandler создаёт обработчик переговорок.
 func NewRoomHandler(roomSvc ports.RoomService) *RoomHandler {
 	return &RoomHandler{roomSvc: roomSvc}
 }

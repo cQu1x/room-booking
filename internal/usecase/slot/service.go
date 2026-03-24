@@ -20,25 +20,21 @@ type Service struct {
 	scheduleRepo ports.ScheduleRepository
 }
 
+// NewService создаёт сервис слотов.
 func NewService(slotRepo ports.SlotRepository, scheduleRepo ports.ScheduleRepository) *Service {
 	return &Service{slotRepo: slotRepo, scheduleRepo: scheduleRepo}
 }
 
-// ListAvailable returns slots for the room on the given date that have no active booking.
-// It also fires a non-blocking goroutine to extend the slot window if it is about to run out.
+// ListAvailable возвращает свободные слоты переговорки на дату и асинхронно продлевает окно генерации.
 func (s *Service) ListAvailable(ctx context.Context, roomID uuid.UUID, date time.Time) ([]entity.Slot, error) {
 	slots, err := s.slotRepo.ListAvailableSlots(ctx, roomID, date)
 	if err != nil {
 		return nil, err
 	}
-	// Fire-and-forget: extend the window in the background so the response is never blocked.
 	go s.ensureWindow(context.Background(), roomID)
 	return slots, nil
 }
 
-// ensureWindow checks whether the slot horizon for the room is still at least
-// windowDays ahead. If not, it generates the missing days. It is safe to call
-// concurrently — duplicate slots are silently ignored (ON CONFLICT DO NOTHING).
 func (s *Service) ensureWindow(ctx context.Context, roomID uuid.UUID) {
 	maxDate, err := s.slotRepo.GetMaxSlotDate(ctx, roomID)
 	if err != nil {
@@ -48,17 +44,15 @@ func (s *Service) ensureWindow(ctx context.Context, roomID uuid.UUID) {
 	now := time.Now().UTC()
 	horizon := now.AddDate(0, 0, windowDays)
 
-	// Nothing to do if the window already extends far enough.
 	if maxDate != nil && !maxDate.Before(horizon) {
 		return
 	}
 
 	schedule, err := s.scheduleRepo.GetScheduleByRoomID(ctx, roomID)
 	if err != nil || schedule == nil {
-		return // room has no schedule; slots are never generated for it
+		return
 	}
 
-	// Generate from the day after the current max (or today if no slots exist yet).
 	var from time.Time
 	if maxDate == nil {
 		from = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
@@ -71,8 +65,7 @@ func (s *Service) ensureWindow(ctx context.Context, roomID uuid.UUID) {
 	_ = s.GenerateForSchedule(ctx, schedule, from, to)
 }
 
-// GenerateForSchedule creates all 30-minute slots for the schedule in [from, to).
-// Slots are inserted with ON CONFLICT DO NOTHING so calling this multiple times is safe.
+// GenerateForSchedule создаёт 30-минутные слоты по расписанию в диапазоне [from, to).
 func (s *Service) GenerateForSchedule(ctx context.Context, schedule *entity.Schedule, from, to time.Time) error {
 	startHour, startMinute, err := parseHHMM(schedule.StartTime)
 	if err != nil {
@@ -117,10 +110,9 @@ func parseHHMM(timeStr string) (int, int, error) {
 	return hour, minute, nil
 }
 
-// isoToWeekday converts ISO weekday (1=Mon … 7=Sun) to time.Weekday.
 func isoToWeekday(isoDay int) time.Weekday {
 	if isoDay == 7 {
 		return time.Sunday
 	}
-	return time.Weekday(isoDay) // 1→Mon, 2→Tue, …, 6→Sat
+	return time.Weekday(isoDay)
 }

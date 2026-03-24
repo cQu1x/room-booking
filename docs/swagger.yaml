@@ -1,0 +1,593 @@
+basePath: /
+definitions:
+  internal_handler.bookingDTO:
+    properties:
+      conferenceLink:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      slotId:
+        type: string
+      status:
+        type: string
+      userId:
+        type: string
+    type: object
+  internal_handler.bookingListResponse:
+    properties:
+      bookings:
+        items:
+          $ref: '#/definitions/internal_handler.bookingDTO'
+        type: array
+      pagination:
+        $ref: '#/definitions/internal_handler.paginationDTO'
+    type: object
+  internal_handler.bookingResponse:
+    properties:
+      booking:
+        $ref: '#/definitions/internal_handler.bookingDTO'
+    type: object
+  internal_handler.createBookingRequest:
+    properties:
+      createConferenceLink:
+        type: boolean
+      slotId:
+        type: string
+    type: object
+  internal_handler.createRoomRequest:
+    properties:
+      capacity:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_handler.createScheduleRequest:
+    properties:
+      daysOfWeek:
+        items:
+          type: integer
+        type: array
+      endTime:
+        type: string
+      startTime:
+        type: string
+    type: object
+  internal_handler.dummyLoginRequest:
+    properties:
+      role:
+        type: string
+    type: object
+  internal_handler.errorBody:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  internal_handler.errorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/internal_handler.errorBody'
+    type: object
+  internal_handler.loginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  internal_handler.paginationDTO:
+    properties:
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+    type: object
+  internal_handler.registerRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      role:
+        type: string
+    type: object
+  internal_handler.roomDTO:
+    properties:
+      capacity:
+        type: integer
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_handler.roomListResponse:
+    properties:
+      rooms:
+        items:
+          $ref: '#/definitions/internal_handler.roomDTO'
+        type: array
+    type: object
+  internal_handler.roomResponse:
+    properties:
+      room:
+        $ref: '#/definitions/internal_handler.roomDTO'
+    type: object
+  internal_handler.scheduleDTO:
+    properties:
+      daysOfWeek:
+        items:
+          type: integer
+        type: array
+      endTime:
+        type: string
+      id:
+        type: string
+      roomId:
+        type: string
+      startTime:
+        type: string
+    type: object
+  internal_handler.scheduleResponse:
+    properties:
+      schedule:
+        $ref: '#/definitions/internal_handler.scheduleDTO'
+    type: object
+  internal_handler.slotDTO:
+    properties:
+      end:
+        type: string
+      id:
+        type: string
+      roomId:
+        type: string
+      start:
+        type: string
+    type: object
+  internal_handler.slotListResponse:
+    properties:
+      slots:
+        items:
+          $ref: '#/definitions/internal_handler.slotDTO'
+        type: array
+    type: object
+  internal_handler.tokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  internal_handler.userDTO:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+    type: object
+  internal_handler.userResponse:
+    properties:
+      user:
+        $ref: '#/definitions/internal_handler.userDTO'
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Meeting room booking service for Avito internship.
+  title: Booking Service API
+  version: "1.0"
+paths:
+  /_info:
+    get:
+      description: Returns 200 OK if the service is running.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - system
+  /bookings/{bookingId}/cancel:
+    post:
+      description: 'Cancels the booking. This operation is idempotent: cancelling
+        an already-cancelled'
+      parameters:
+      - description: Booking UUID
+        in: path
+        name: bookingId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.bookingResponse'
+        "400":
+          description: Invalid bookingId
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: User role required or not the owner
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Booking not found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a booking
+      tags:
+      - bookings
+  /bookings/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates an active booking for the given slot on behalf of the authenticated
+        user.
+      parameters:
+      - description: Booking data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createBookingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.bookingResponse'
+        "400":
+          description: Validation error or slot is in the past
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: User role required
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Slot not found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Slot is already booked
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Book a slot
+      tags:
+      - bookings
+  /bookings/list:
+    get:
+      description: Returns a paginated list of all bookings in the system. Requires
+        admin role.
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page, 1–100 (default: 20)'
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.bookingListResponse'
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Admin role required
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all bookings (admin)
+      tags:
+      - bookings
+  /bookings/my:
+    get:
+      description: Returns future bookings of the authenticated user (past slots are
+        excluded).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.bookingListResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: User role required
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List my bookings
+      tags:
+      - bookings
+  /dummyLogin:
+    post:
+      consumes:
+      - application/json
+      description: Issues a signed JWT for the given role with a fixed, stable user_id.
+      parameters:
+      - description: Role to log in as
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.dummyLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.tokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Get a test JWT token
+      tags:
+      - auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Verifies credentials and returns a signed JWT on success.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.tokenResponse'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Login with email and password
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a user account with a bcrypt-hashed password and returns
+        the created user.
+      parameters:
+      - description: Registration data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.userResponse'
+        "400":
+          description: Validation error or email already taken
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /rooms/{roomId}/schedule/create:
+    post:
+      consumes:
+      - application/json
+      description: Defines the weekly availability of a room and pre-generates 30-minute
+        slots
+      parameters:
+      - description: Room UUID
+        in: path
+        name: roomId
+        required: true
+        type: string
+      - description: Schedule data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.scheduleResponse'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Admin role required
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Room not found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "409":
+          description: Schedule already exists for this room
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a schedule for a room
+      tags:
+      - schedules
+  /rooms/{roomId}/slots/list:
+    get:
+      description: Returns all unbooked 30-minute slots for a room on the given date
+        (UTC).
+      parameters:
+      - description: Room UUID
+        in: path
+        name: roomId
+        required: true
+        type: string
+      - description: Date in YYYY-MM-DD format (UTC)
+        in: query
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.slotListResponse'
+        "400":
+          description: Missing or invalid date parameter
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Insufficient role
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Room not found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List available slots
+      tags:
+      - slots
+  /rooms/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new meeting room. Requires admin role.
+      parameters:
+      - description: Room data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.createRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.roomResponse'
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Admin role required
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a room
+      tags:
+      - rooms
+  /rooms/list:
+    get:
+      description: Returns all meeting rooms in the system.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.roomListResponse'
+        "401":
+          description: Missing or invalid token
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "403":
+          description: Insufficient role
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all rooms
+      tags:
+      - rooms
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT token obtained from /dummyLogin, /login, or /register. Format:
+      "Bearer <token>"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

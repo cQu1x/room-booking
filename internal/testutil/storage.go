@@ -11,19 +11,17 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// InMemStore is a thread-safe in-memory implementation of all repository interfaces.
-// It is intended for integration and E2E tests that need realistic data persistence
-// without a real database.
 type InMemStore struct {
 	mu           sync.RWMutex
 	rooms        map[uuid.UUID]*entity.Room
-	schedules    map[uuid.UUID]*entity.Schedule // keyed by room ID
+	schedules    map[uuid.UUID]*entity.Schedule
 	slots        map[uuid.UUID]*entity.Slot
 	bookings     map[uuid.UUID]*entity.Booking
 	users        map[uuid.UUID]*entity.User
 	usersByEmail map[string]*entity.User
 }
 
+// NewInMemStore создаёт пустое in-memory хранилище для использования в тестах.
 func NewInMemStore() *InMemStore {
 	return &InMemStore{
 		rooms:        make(map[uuid.UUID]*entity.Room),
@@ -89,7 +87,7 @@ func (s *InMemStore) CreateSlots(_ context.Context, slots []entity.Slot) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, slot := range slots {
-		if _, exists := s.slots[slot.ID]; !exists { // ON CONFLICT DO NOTHING
+		if _, exists := s.slots[slot.ID]; !exists {
 			cp := slot
 			s.slots[slot.ID] = &cp
 		}
@@ -210,7 +208,6 @@ func (s *InMemStore) ListByUserID(_ context.Context, userID uuid.UUID) ([]entity
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Build a quick slot lookup.
 	now := time.Now().UTC()
 	var result []entity.Booking
 	for _, b := range s.bookings {
@@ -219,7 +216,7 @@ func (s *InMemStore) ListByUserID(_ context.Context, userID uuid.UUID) ([]entity
 		}
 		slot, ok := s.slots[b.SlotID]
 		if !ok || !slot.StartTime.After(now) {
-			continue // skip past slots
+			continue
 		}
 		result = append(result, *b)
 	}
@@ -260,7 +257,6 @@ func (s *InMemStore) GetUserByEmail(_ context.Context, email string) (*entity.Us
 	defer s.mu.RUnlock()
 	u, ok := s.usersByEmail[email]
 	if !ok {
-		// auth use case checks for pgx.ErrNoRows to distinguish "not found" from other errors.
 		return nil, pgx.ErrNoRows
 	}
 	return u, nil

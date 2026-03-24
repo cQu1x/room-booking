@@ -11,6 +11,7 @@ type AuthHandler struct {
 	authSvc ports.AuthService
 }
 
+// NewAuthHandler создаёт обработчик аутентификации.
 func NewAuthHandler(authSvc ports.AuthService) *AuthHandler {
 	return &AuthHandler{authSvc: authSvc}
 }

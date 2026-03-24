@@ -13,6 +13,7 @@ type SlotHandler struct {
 	roomSvc ports.RoomService
 }
 
+// NewSlotHandler создаёт обработчик слотов.
 func NewSlotHandler(slotSvc ports.SlotService, roomSvc ports.RoomService) *SlotHandler {
 	return &SlotHandler{slotSvc: slotSvc, roomSvc: roomSvc}
 }
@@ -52,7 +53,6 @@ func (h *SlotHandler) ListAvailable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify room exists before querying slots.
 	if _, err := h.roomSvc.GetByID(r.Context(), roomID); err != nil {
 		writeError(w, http.StatusNotFound, "ROOM_NOT_FOUND", "room not found")
 		return

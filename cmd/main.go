@@ -37,16 +37,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("connect to database: %v", err)
 	}
-	defer pool.Close()
 
 	if err := pool.Ping(context.Background()); err != nil {
+		pool.Close()
 		log.Fatalf("ping database: %v", err)
 	}
 
 	// ── Migrations ────────────────────────────────────────────────────────────
 	if _, err := pool.Exec(context.Background(), migrations.InitSQL); err != nil {
+		pool.Close()
 		log.Fatalf("run migrations: %v", err)
 	}
+	defer pool.Close()
 
 	// ── Repositories ──────────────────────────────────────────────────────────
 	userRepo := postgres.NewUserRepository(pool)
@@ -78,6 +80,6 @@ func main() {
 	addr := ":" + cfg.App.Port
 	log.Printf("starting server on %s", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Fatalf("server: %v", err)
+		log.Printf("server: %v", err)
 	}
 }

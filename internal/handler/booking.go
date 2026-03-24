@@ -11,6 +11,7 @@ type BookingHandler struct {
 	bookingSvc ports.BookingService
 }
 
+// NewBookingHandler создаёт обработчик бронирований.
 func NewBookingHandler(bookingSvc ports.BookingService) *BookingHandler {
 	return &BookingHandler{bookingSvc: bookingSvc}
 }

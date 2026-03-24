@@ -2,6 +2,7 @@ package booking_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -96,7 +97,7 @@ func TestCreate_SlotNotFound(t *testing.T) {
 	svc := booking.NewService(&testutil.MockBookingRepo{}, slotRepo)
 	_, err := svc.Create(context.Background(), uuid.New(), uuid.New(), false)
 
-	if err != entity.ErrSlotNotFound {
+	if !errors.Is(err, entity.ErrSlotNotFound) {
 		t.Errorf("expected ErrSlotNotFound, got %v", err)
 	}
 }
@@ -113,7 +114,7 @@ func TestCreate_SlotInPast(t *testing.T) {
 	svc := booking.NewService(&testutil.MockBookingRepo{}, slotRepo)
 	_, err := svc.Create(context.Background(), uuid.New(), uuid.New(), false)
 
-	if err != entity.ErrSlotInPast {
+	if !errors.Is(err, entity.ErrSlotInPast) {
 		t.Errorf("expected ErrSlotInPast, got %v", err)
 	}
 }
@@ -135,7 +136,7 @@ func TestCreate_SlotAlreadyBooked(t *testing.T) {
 	svc := booking.NewService(bookingRepo, slotRepo)
 	_, err := svc.Create(context.Background(), uuid.New(), uuid.New(), false)
 
-	if err != entity.ErrSlotAlreadyBooked {
+	if !errors.Is(err, entity.ErrSlotAlreadyBooked) {
 		t.Errorf("expected ErrSlotAlreadyBooked, got %v", err)
 	}
 }
@@ -217,7 +218,7 @@ func TestCancel_NotFound(t *testing.T) {
 	svc := booking.NewService(bookingRepo, &testutil.MockSlotRepo{})
 	_, err := svc.Cancel(context.Background(), uuid.New(), uuid.New())
 
-	if err != entity.ErrBookingNotFound {
+	if !errors.Is(err, entity.ErrBookingNotFound) {
 		t.Errorf("expected ErrBookingNotFound, got %v", err)
 	}
 }
@@ -236,7 +237,7 @@ func TestCancel_Forbidden(t *testing.T) {
 	svc := booking.NewService(bookingRepo, &testutil.MockSlotRepo{})
 	_, err := svc.Cancel(context.Background(), uuid.New(), uuid.New())
 
-	if err != entity.ErrForbidden {
+	if !errors.Is(err, entity.ErrForbidden) {
 		t.Errorf("expected ErrForbidden, got %v", err)
 	}
 }

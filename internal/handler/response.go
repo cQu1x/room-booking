@@ -10,7 +10,6 @@ import (
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/domain/entity"
 )
 
-// decodeJSON decodes the JSON request body into dst.
 func decodeJSON(r *http.Request, dst any) error {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		return fmt.Errorf("decode json: %w", err)
@@ -18,7 +17,6 @@ func decodeJSON(r *http.Request, dst any) error {
 	return nil
 }
 
-// queryInt reads an integer query param; returns def if absent, error if malformed.
 func queryInt(r *http.Request, key string, def int) (int, error) {
 	raw := r.URL.Query().Get(key)
 	if raw == "" {
@@ -54,8 +52,6 @@ func writeInternalError(w http.ResponseWriter) {
 	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
 }
 
-// domainError maps a domain error to an HTTP status + error code.
-// Returns false if the error was not a known domain error (caller should write 500).
 func writeDomainError(w http.ResponseWriter, err error) bool {
 	switch {
 	case errors.Is(err, entity.ErrRoomNotFound):

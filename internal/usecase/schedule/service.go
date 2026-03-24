@@ -10,9 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// slotGenerationDays is the rolling window for which slots are pre-generated
-// when a schedule is first created. The task states 99.9% of bookings happen
-// within the next 7 days, so generating 7 days upfront covers that SLA.
 const slotGenerationDays = 7
 
 type Service struct {
@@ -21,6 +18,7 @@ type Service struct {
 	slotService  ports.SlotService
 }
 
+// NewService создаёт сервис расписаний.
 func NewService(scheduleRepo ports.ScheduleRepository, roomRepo ports.RoomRepository, slotService ports.SlotService) *Service {
 	return &Service{
 		scheduleRepo: scheduleRepo,
@@ -29,20 +27,18 @@ func NewService(scheduleRepo ports.ScheduleRepository, roomRepo ports.RoomReposi
 	}
 }
 
+// Create создаёт расписание для переговорки и предгенерирует слоты на ближайшие 7 дней.
 func (s *Service) Create(ctx context.Context, roomID uuid.UUID, daysOfWeek []int, startTime, endTime string) (*entity.Schedule, error) {
-	// Validate days of week
 	for _, d := range daysOfWeek {
 		if d < 1 || d > 7 {
 			return nil, fmt.Errorf("invalid day of week %d: must be in range 1-7", d)
 		}
 	}
 
-	// Verify room exists
 	if _, err := s.roomRepo.GetRoomByID(ctx, roomID); err != nil {
 		return nil, entity.ErrRoomNotFound
 	}
 
-	// Ensure no schedule exists yet (immutable constraint)
 	existing, err := s.scheduleRepo.GetScheduleByRoomID(ctx, roomID)
 	if err != nil {
 		return nil, err
@@ -63,7 +59,6 @@ func (s *Service) Create(ctx context.Context, roomID uuid.UUID, daysOfWeek []int
 		return nil, err
 	}
 
-	// Pre-generate slots for the rolling window starting today
 	now := time.Now().UTC()
 	from := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	to := from.AddDate(0, 0, slotGenerationDays)

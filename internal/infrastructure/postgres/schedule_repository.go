@@ -14,10 +14,12 @@ type ScheduleRepository struct {
 	db *pgxpool.Pool
 }
 
+// NewScheduleRepository создаёт репозиторий расписаний на основе пула соединений.
 func NewScheduleRepository(db *pgxpool.Pool) *ScheduleRepository {
 	return &ScheduleRepository{db: db}
 }
 
+// CreateSchedule сохраняет расписание переговорки в базе данных.
 func (r *ScheduleRepository) CreateSchedule(ctx context.Context, schedule *entity.Schedule) error {
 	const query = `INSERT INTO schedules (id, room_id, days_of_week, start_time, end_time)
 	 VALUES ($1, $2, $3, $4, $5)`
@@ -25,6 +27,7 @@ func (r *ScheduleRepository) CreateSchedule(ctx context.Context, schedule *entit
 	return err
 }
 
+// GetScheduleByRoomID возвращает расписание переговорки или nil, если оно не задано.
 func (r *ScheduleRepository) GetScheduleByRoomID(ctx context.Context, roomID uuid.UUID) (*entity.Schedule, error) {
 	const query = `SELECT id, room_id, days_of_week, start_time, end_time FROM schedules WHERE room_id = $1`
 	row := r.db.QueryRow(ctx, query, roomID)

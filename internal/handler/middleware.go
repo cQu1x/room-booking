@@ -25,7 +25,7 @@ func ctxGetRole(r *http.Request) entity.Role {
 	return r.Context().Value(ctxUserRole).(entity.Role)
 }
 
-// AuthMiddleware validates the Bearer JWT and stores user_id + role in context.
+// AuthMiddleware проверяет Bearer JWT и сохраняет user_id и роль в контексте запроса.
 func AuthMiddleware(tokenManager *jwtpkg.TokenManager, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
@@ -49,7 +49,7 @@ func AuthMiddleware(tokenManager *jwtpkg.TokenManager, next http.Handler) http.H
 	})
 }
 
-// RequireRole returns middleware that allows only requests with one of the given roles.
+// RequireRole возвращает middleware, пропускающий только запросы с одной из указанных ролей.
 func RequireRole(roles ...entity.Role) func(http.Handler) http.Handler {
 	allowed := make(map[entity.Role]struct{}, len(roles))
 	for _, role := range roles {
@@ -67,7 +67,6 @@ func RequireRole(roles ...entity.Role) func(http.Handler) http.Handler {
 	}
 }
 
-// chain applies a list of middleware to a handler (innermost first).
 func chain(h http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		h = middlewares[i](h)

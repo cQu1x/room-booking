@@ -13,10 +13,12 @@ type UserRepository struct {
 	db *pgxpool.Pool
 }
 
+// NewUserRepository создаёт репозиторий пользователей на основе пула соединений.
 func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 	return &UserRepository{db: db}
 }
 
+// CreateUser сохраняет нового пользователя и возвращает созданную запись.
 func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) (entity.User, error) {
 	const query = `INSERT INTO users (id, email, password_hash, role, created_at)
 	 VALUES ($1, $2, $3, $4, $5) RETURNING id, email, password_hash, role, created_at`
@@ -24,6 +26,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) (ent
 	return scanUser(row)
 }
 
+// GetUserByEmail возвращает пользователя по адресу электронной почты.
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
 	const query = `SELECT id, email, password_hash, role, created_at FROM users WHERE email = $1`
 	row := r.db.QueryRow(ctx, query, email)
@@ -34,6 +37,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*ent
 	return &user, nil
 }
 
+// GetUserByID возвращает пользователя по идентификатору.
 func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
 	const query = `SELECT id, email, password_hash, role, created_at FROM users WHERE id = $1`
 	row := r.db.QueryRow(ctx, query, id)

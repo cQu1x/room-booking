@@ -14,8 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Fixed UUIDs returned by /dummyLogin — stable across all requests for the same role,
-// which allows tests to reliably assert ownership of bookings.
 var (
 	dummyAdminID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	dummyUserID  = uuid.MustParse("00000000-0000-0000-0000-000000000002")
@@ -26,6 +24,7 @@ type AuthUseCase struct {
 	tokenManager *jwtpkg.TokenManager
 }
 
+// NewAuthUseCase создаёт сервис аутентификации.
 func NewAuthUseCase(userRepo ports.UserRepository, tokenManager *jwtpkg.TokenManager) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo:     userRepo,
@@ -33,8 +32,7 @@ func NewAuthUseCase(userRepo ports.UserRepository, tokenManager *jwtpkg.TokenMan
 	}
 }
 
-// DummyLogin issues a JWT for the given role with a fixed, stable user_id.
-// admin role always gets dummyAdminID; user role always gets dummyUserID.
+// DummyLogin выдаёт JWT с фиксированным user_id для указанной роли (admin или user).
 func (a *AuthUseCase) DummyLogin(ctx context.Context, role entity.Role) (string, error) {
 	var userID uuid.UUID
 	switch role {
@@ -48,7 +46,7 @@ func (a *AuthUseCase) DummyLogin(ctx context.Context, role entity.Role) (string,
 	return a.tokenManager.GenerateToken(userID, role)
 }
 
-// Register creates a new user with a bcrypt-hashed password.
+// Register регистрирует нового пользователя с хэшированным паролем.
 func (a *AuthUseCase) Register(ctx context.Context, email, password string, role entity.Role) (*entity.User, error) {
 	existing, err := a.userRepo.GetUserByEmail(ctx, email)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -78,7 +76,7 @@ func (a *AuthUseCase) Register(ctx context.Context, email, password string, role
 	return &created, nil
 }
 
-// Login verifies credentials and returns a signed JWT on success.
+// Login проверяет учётные данные и возвращает подписанный JWT при успехе.
 func (a *AuthUseCase) Login(ctx context.Context, email, password string) (string, error) {
 	user, err := a.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {

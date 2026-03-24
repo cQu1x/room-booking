@@ -21,10 +21,12 @@ type TokenManager struct {
 	secret []byte
 }
 
+// NewTokenManager создаёт менеджер JWT-токенов с заданным секретом.
 func NewTokenManager(secret string) *TokenManager {
 	return &TokenManager{secret: []byte(secret)}
 }
 
+// GenerateToken выпускает подписанный JWT с идентификатором пользователя и ролью.
 func (m *TokenManager) GenerateToken(userID uuid.UUID, role entity.Role) (string, error) {
 	claims := Claims{
 		UserID: userID,
@@ -38,6 +40,7 @@ func (m *TokenManager) GenerateToken(userID uuid.UUID, role entity.Role) (string
 	return token.SignedString(m.secret)
 }
 
+// ValidateToken проверяет подпись и срок действия токена, возвращает claims при успехе.
 func (m *TokenManager) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

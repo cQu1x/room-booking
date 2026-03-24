@@ -24,6 +24,7 @@ type DBConfig struct {
 	SSLMode  string
 }
 
+// DSN возвращает строку подключения к базе данных.
 func (c DBConfig) DSN() string {
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -35,6 +36,7 @@ type JWTConfig struct {
 	Secret string
 }
 
+// LoadConfig загружает конфигурацию из переменных окружения.
 func LoadConfig() Config {
 	return Config{
 		App: AppConfig{
@@ -55,6 +57,7 @@ func LoadConfig() Config {
 
 }
 
+// GetEnv возвращает значение переменной окружения или defaultValue, если она не задана.
 func GetEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value

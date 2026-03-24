@@ -13,10 +13,12 @@ type RoomRepository struct {
 	db *pgxpool.Pool
 }
 
+// NewRoomRepository создаёт репозиторий переговорок на основе пула соединений.
 func NewRoomRepository(db *pgxpool.Pool) *RoomRepository {
 	return &RoomRepository{db: db}
 }
 
+// CreateRoom сохраняет переговорку и возвращает созданную запись.
 func (r *RoomRepository) CreateRoom(ctx context.Context, room *entity.Room) (*entity.Room, error) {
 	const query = `INSERT INTO rooms (id, name, description, capacity, created_at)
 	 VALUES ($1, $2, $3, $4, $5) RETURNING id, name, description, capacity, created_at`
@@ -28,6 +30,7 @@ func (r *RoomRepository) CreateRoom(ctx context.Context, room *entity.Room) (*en
 	return createdRoom, nil
 }
 
+// GetRoomByID возвращает переговорку по идентификатору.
 func (r *RoomRepository) GetRoomByID(ctx context.Context, id uuid.UUID) (*entity.Room, error) {
 	const query = `SELECT id, name, description, capacity, created_at FROM rooms WHERE id = $1`
 	row := r.db.QueryRow(ctx, query, id)
@@ -38,6 +41,7 @@ func (r *RoomRepository) GetRoomByID(ctx context.Context, id uuid.UUID) (*entity
 	return room, nil
 }
 
+// ListRooms возвращает список всех переговорок.
 func (r *RoomRepository) ListRooms(ctx context.Context) ([]entity.Room, error) {
 	const query = `SELECT id, name, description, capacity, created_at FROM rooms`
 	rows, err := r.db.Query(ctx, query)
