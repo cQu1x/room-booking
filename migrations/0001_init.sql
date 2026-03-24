@@ -14,15 +14,23 @@ CREATE TABLE IF NOT EXISTS rooms (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- One immutable schedule per room. After creation it cannot be changed.
+CREATE TABLE IF NOT EXISTS schedules (
+    id           UUID PRIMARY KEY,
+    room_id      UUID NOT NULL UNIQUE REFERENCES rooms(id) ON DELETE CASCADE,
+    days_of_week INTEGER[] NOT NULL,
+    start_time   TEXT NOT NULL,
+    end_time     TEXT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS slots (
-    id      UUID PRIMARY KEY,
-    room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-    start_time   TIMESTAMPTZ NOT NULL,
+    id         UUID PRIMARY KEY,
+    room_id    UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    start_time TIMESTAMPTZ NOT NULL,
     end_time   TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS slots_room_start_uidx ON slots(room_id, start_time);
+CREATE INDEX IF NOT EXISTS slots_room_start_idx ON slots(room_id, start_time);
 
 CREATE TABLE IF NOT EXISTS bookings (
     id              UUID PRIMARY KEY,
@@ -34,3 +42,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 );
 
 CREATE INDEX IF NOT EXISTS bookings_slot_idx ON bookings(slot_id);
+CREATE INDEX IF NOT EXISTS bookings_user_idx ON bookings(user_id);
+
+-- Enforce one active booking per slot at the database level.
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_active_slot_uidx ON bookings(slot_id) WHERE status = 'active';
