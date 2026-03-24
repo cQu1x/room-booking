@@ -3,6 +3,7 @@ package slot
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/domain/entity"
@@ -20,37 +21,40 @@ type Service struct {
 	scheduleRepo ports.ScheduleRepository
 }
 
-// NewService создаёт сервис слотов.
 func NewService(slotRepo ports.SlotRepository, scheduleRepo ports.ScheduleRepository) *Service {
 	return &Service{slotRepo: slotRepo, scheduleRepo: scheduleRepo}
 }
 
-// ListAvailable возвращает свободные слоты переговорки на дату и асинхронно продлевает окно генерации.
 func (s *Service) ListAvailable(ctx context.Context, roomID uuid.UUID, date time.Time) ([]entity.Slot, error) {
 	slots, err := s.slotRepo.ListAvailableSlots(ctx, roomID, date)
 	if err != nil {
 		return nil, err
 	}
-	go s.ensureWindow(context.Background(), roomID)
+	if err := s.ensureWindow(ctx, roomID); err != nil {
+		log.Printf("ensureWindow room=%s: %v", roomID, err)
+	}
 	return slots, nil
 }
 
-func (s *Service) ensureWindow(ctx context.Context, roomID uuid.UUID) {
+func (s *Service) ensureWindow(ctx context.Context, roomID uuid.UUID) error {
 	maxDate, err := s.slotRepo.GetMaxSlotDate(ctx, roomID)
 	if err != nil {
-		return
+		return err
 	}
 
 	now := time.Now().UTC()
 	horizon := now.AddDate(0, 0, windowDays)
 
 	if maxDate != nil && !maxDate.Before(horizon) {
-		return
+		return nil
 	}
 
 	schedule, err := s.scheduleRepo.GetScheduleByRoomID(ctx, roomID)
-	if err != nil || schedule == nil {
-		return
+	if err != nil {
+		return err
+	}
+	if schedule == nil {
+		return nil
 	}
 
 	var from time.Time
@@ -62,10 +66,9 @@ func (s *Service) ensureWindow(ctx context.Context, roomID uuid.UUID) {
 	}
 	to := time.Date(horizon.Year(), horizon.Month(), horizon.Day()+1, 0, 0, 0, 0, time.UTC)
 
-	_ = s.GenerateForSchedule(ctx, schedule, from, to)
+	return s.GenerateForSchedule(ctx, schedule, from, to)
 }
 
-// GenerateForSchedule создаёт 30-минутные слоты по расписанию в диапазоне [from, to).
 func (s *Service) GenerateForSchedule(ctx context.Context, schedule *entity.Schedule, from, to time.Time) error {
 	startHour, startMinute, err := parseHHMM(schedule.StartTime)
 	if err != nil {

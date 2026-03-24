@@ -1,5 +1,11 @@
 version: "2"
 
+run:
+  build-tags:
+    - nolint
+  exclude-dirs:
+    - docs
+
 linters:
   default: none
   enable:

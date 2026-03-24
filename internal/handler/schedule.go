@@ -11,7 +11,6 @@ type ScheduleHandler struct {
 	scheduleSvc ports.ScheduleService
 }
 
-// NewScheduleHandler создаёт обработчик расписаний.
 func NewScheduleHandler(scheduleSvc ports.ScheduleService) *ScheduleHandler {
 	return &ScheduleHandler{scheduleSvc: scheduleSvc}
 }
@@ -43,7 +42,7 @@ func (h *ScheduleHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req createScheduleRequest
-	if err := decodeJSON(r, &req); err != nil {
+	if err := decodeJSON(r, w, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
 		return
 	}
@@ -55,7 +54,7 @@ func (h *ScheduleHandler) Create(w http.ResponseWriter, r *http.Request) {
 	schedule, err := h.scheduleSvc.Create(r.Context(), roomID, req.DaysOfWeek, req.StartTime, req.EndTime)
 	if err != nil {
 		if !writeDomainError(w, err) {
-			writeInternalError(w)
+			writeInternalError(w, err)
 		}
 		return
 	}

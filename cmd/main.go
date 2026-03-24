@@ -12,10 +12,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	_ "github.com/avito-internships/test-backend-1-cQu1x/docs"
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/config"
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/handler"
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/infrastructure/jwt"
@@ -31,20 +35,26 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("invalid configuration: %v", err)
+	}
 
 	// ── Database ──────────────────────────────────────────────────────────────
-	pool, err := pgxpool.New(context.Background(), cfg.DB.DSN())
+	dbCtx, dbCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer dbCancel()
+
+	pool, err := pgxpool.New(dbCtx, cfg.DB.DSN())
 	if err != nil {
 		log.Fatalf("connect to database: %v", err)
 	}
 
-	if err := pool.Ping(context.Background()); err != nil {
+	if err := pool.Ping(dbCtx); err != nil {
 		pool.Close()
 		log.Fatalf("ping database: %v", err)
 	}
 
 	// ── Migrations ────────────────────────────────────────────────────────────
-	if _, err := pool.Exec(context.Background(), migrations.InitSQL); err != nil {
+	if _, err := pool.Exec(dbCtx, migrations.InitSQL); err != nil {
 		pool.Close()
 		log.Fatalf("run migrations: %v", err)
 	}
@@ -77,9 +87,30 @@ func main() {
 
 	router := handler.NewRouter(handlers, tokenManager)
 
-	addr := ":" + cfg.App.Port
-	log.Printf("starting server on %s", addr)
-	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Printf("server: %v", err)
+	srv := &http.Server{
+		Addr:         ":" + cfg.App.Port,
+		Handler:      router,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
+
+	// ── Graceful shutdown ─────────────────────────────────────────────────────
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-quit
+		log.Println("shutting down server...")
+		shutCtx, shutCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer shutCancel()
+		if err := srv.Shutdown(shutCtx); err != nil {
+			log.Printf("server shutdown error: %v", err)
+		}
+	}()
+
+	log.Printf("starting server on :%s", cfg.App.Port)
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("server: %v", err)
+	}
+	log.Println("server stopped")
 }

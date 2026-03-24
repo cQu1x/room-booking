@@ -29,6 +29,7 @@ func (m *MockRoomRepo) ListRooms(ctx context.Context) ([]entity.Room, error) {
 type MockScheduleRepo struct {
 	CreateScheduleFn      func(ctx context.Context, schedule *entity.Schedule) error
 	GetScheduleByRoomIDFn func(ctx context.Context, roomID uuid.UUID) (*entity.Schedule, error)
+	DeleteScheduleFn      func(ctx context.Context, id uuid.UUID) error
 }
 
 func (m *MockScheduleRepo) CreateSchedule(ctx context.Context, schedule *entity.Schedule) error {
@@ -37,6 +38,13 @@ func (m *MockScheduleRepo) CreateSchedule(ctx context.Context, schedule *entity.
 
 func (m *MockScheduleRepo) GetScheduleByRoomID(ctx context.Context, roomID uuid.UUID) (*entity.Schedule, error) {
 	return m.GetScheduleByRoomIDFn(ctx, roomID)
+}
+
+func (m *MockScheduleRepo) DeleteSchedule(ctx context.Context, id uuid.UUID) error {
+	if m.DeleteScheduleFn != nil {
+		return m.DeleteScheduleFn(ctx, id)
+	}
+	return nil
 }
 
 type MockSlotRepo struct {

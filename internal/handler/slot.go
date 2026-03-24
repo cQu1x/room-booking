@@ -13,7 +13,6 @@ type SlotHandler struct {
 	roomSvc ports.RoomService
 }
 
-// NewSlotHandler создаёт обработчик слотов.
 func NewSlotHandler(slotSvc ports.SlotService, roomSvc ports.RoomService) *SlotHandler {
 	return &SlotHandler{slotSvc: slotSvc, roomSvc: roomSvc}
 }
@@ -60,7 +59,7 @@ func (h *SlotHandler) ListAvailable(w http.ResponseWriter, r *http.Request) {
 
 	slots, err := h.slotSvc.ListAvailable(r.Context(), roomID, date)
 	if err != nil {
-		writeInternalError(w)
+		writeInternalError(w, err)
 		return
 	}
 

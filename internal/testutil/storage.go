@@ -8,7 +8,6 @@ import (
 
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/domain/entity"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 )
 
 type InMemStore struct {
@@ -21,7 +20,6 @@ type InMemStore struct {
 	usersByEmail map[string]*entity.User
 }
 
-// NewInMemStore создаёт пустое in-memory хранилище для использования в тестах.
 func NewInMemStore() *InMemStore {
 	return &InMemStore{
 		rooms:        make(map[uuid.UUID]*entity.Room),
@@ -79,6 +77,18 @@ func (s *InMemStore) GetScheduleByRoomID(_ context.Context, roomID uuid.UUID) (*
 		return nil, nil
 	}
 	return sch, nil
+}
+
+func (s *InMemStore) DeleteSchedule(_ context.Context, id uuid.UUID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for roomID, sch := range s.schedules {
+		if sch.ID == id {
+			delete(s.schedules, roomID)
+			return nil
+		}
+	}
+	return nil
 }
 
 // ── SlotRepository ────────────────────────────────────────────────────────────
@@ -206,10 +216,9 @@ func (s *InMemStore) ListAllBookings(_ context.Context, page, pageSize int) ([]e
 
 func (s *InMemStore) ListByUserID(_ context.Context, userID uuid.UUID) ([]entity.Booking, error) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	now := time.Now().UTC()
 	var result []entity.Booking
+	startTimes := make(map[uuid.UUID]time.Time)
 	for _, b := range s.bookings {
 		if b.UserID != userID {
 			continue
@@ -219,14 +228,12 @@ func (s *InMemStore) ListByUserID(_ context.Context, userID uuid.UUID) ([]entity
 			continue
 		}
 		result = append(result, *b)
+		startTimes[b.SlotID] = slot.StartTime
 	}
+	s.mu.RUnlock()
+
 	sort.Slice(result, func(i, j int) bool {
-		si := s.slots[result[i].SlotID]
-		sj := s.slots[result[j].SlotID]
-		if si == nil || sj == nil {
-			return false
-		}
-		return si.StartTime.Before(sj.StartTime)
+		return startTimes[result[i].SlotID].Before(startTimes[result[j].SlotID])
 	})
 	return result, nil
 }
@@ -257,7 +264,7 @@ func (s *InMemStore) GetUserByEmail(_ context.Context, email string) (*entity.Us
 	defer s.mu.RUnlock()
 	u, ok := s.usersByEmail[email]
 	if !ok {
-		return nil, pgx.ErrNoRows
+		return nil, entity.ErrUserNotFound
 	}
 	return u, nil
 }
@@ -267,7 +274,7 @@ func (s *InMemStore) GetUserByID(_ context.Context, id uuid.UUID) (*entity.User,
 	defer s.mu.RUnlock()
 	u, ok := s.users[id]
 	if !ok {
-		return nil, pgx.ErrNoRows
+		return nil, entity.ErrUserNotFound
 	}
 	return u, nil
 }

@@ -13,19 +13,17 @@ import (
 
 func TestGenerateForSchedule_CreatesCorrectSlots(t *testing.T) {
 	roomID := uuid.New()
-	// Monday = ISO 1
+
 	schedule := &entity.Schedule{
 		ID:         uuid.New(),
 		RoomID:     roomID,
-		DaysOfWeek: []int{1, 2, 3, 4, 5}, // Mon–Fri
+		DaysOfWeek: []int{1, 2, 3, 4, 5},
 		StartTime:  "09:00",
-		EndTime:    "10:00", // 2 slots per day
+		EndTime:    "10:00",
 	}
 
-	// Use a Monday as the start so at least one day qualifies.
 	from := nextWeekday(time.Monday)
-	to := from.AddDate(0, 0, 1) // only one day
-
+	to := from.AddDate(0, 0, 1)
 	var created []entity.Slot
 	slotRepo := &testutil.MockSlotRepo{
 		CreateSlotsFn: func(_ context.Context, slots []entity.Slot) error {
@@ -40,7 +38,7 @@ func TestGenerateForSchedule_CreatesCorrectSlots(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// 09:00–09:30 and 09:30–10:00 → 2 slots
+
 	if len(created) != 2 {
 		t.Errorf("expected 2 slots, got %d", len(created))
 	}
@@ -55,14 +53,14 @@ func TestGenerateForSchedule_CreatesCorrectSlots(t *testing.T) {
 }
 
 func TestGenerateForSchedule_SkipsNonScheduledDays(t *testing.T) {
-	// Schedule is Monday only; generate Mon+Tue → expect only Monday slots.
+
 	monday := nextWeekday(time.Monday)
 	tuesday := monday.AddDate(0, 0, 1)
 
 	schedule := &entity.Schedule{
 		ID:         uuid.New(),
 		RoomID:     uuid.New(),
-		DaysOfWeek: []int{1}, // Monday only
+		DaysOfWeek: []int{1},
 		StartTime:  "09:00",
 		EndTime:    "10:00",
 	}
@@ -81,14 +79,14 @@ func TestGenerateForSchedule_SkipsNonScheduledDays(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Only Monday: 2 slots (09:00 and 09:30)
+
 	if len(created) != 2 {
 		t.Errorf("expected 2 slots for Monday only, got %d", len(created))
 	}
 }
 
 func TestGenerateForSchedule_DeterministicIDs(t *testing.T) {
-	// Running GenerateForSchedule twice for the same period must produce identical slot IDs.
+
 	monday := nextWeekday(time.Monday)
 	schedule := &entity.Schedule{
 		ID:         uuid.New(),
@@ -144,7 +142,7 @@ func TestGenerateForSchedule_EmptyRangeProducesNoSlots(t *testing.T) {
 	}
 
 	svc := slot.NewService(slotRepo, &testutil.MockScheduleRepo{})
-	// from == to: empty range
+
 	err := svc.GenerateForSchedule(context.Background(), schedule, now, now)
 
 	if err != nil {
@@ -167,7 +165,6 @@ func TestListAvailable_ReturnsRepositoryResult(t *testing.T) {
 			return expected, nil
 		},
 		GetMaxSlotDateFn: func(_ context.Context, _ uuid.UUID) (*time.Time, error) {
-			// Return a far future date so ensureWindow is a no-op.
 			t := time.Now().UTC().AddDate(1, 0, 0)
 			return &t, nil
 		},
@@ -189,7 +186,6 @@ func TestListAvailable_ReturnsRepositoryResult(t *testing.T) {
 	}
 }
 
-// nextWeekday returns the next occurrence of the given weekday at midnight UTC.
 func nextWeekday(wd time.Weekday) time.Time {
 	now := time.Now().UTC()
 	d := now

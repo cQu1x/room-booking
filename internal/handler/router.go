@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/domain/entity"
 	jwtpkg "github.com/avito-internships/test-backend-1-cQu1x/internal/infrastructure/jwt"
@@ -29,7 +30,10 @@ func NewRouter(h Handlers, tokenManager *jwtpkg.TokenManager) http.Handler {
 
 	// ── Public ────────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /_info", info)
-	mux.HandleFunc("POST /dummyLogin", h.Auth.DummyLogin)
+	// DummyLogin is only registered in non-production environments.
+	if os.Getenv("APP_ENV") != "production" {
+		mux.HandleFunc("POST /dummyLogin", h.Auth.DummyLogin)
+	}
 	mux.HandleFunc("POST /register", h.Auth.Register)
 	mux.HandleFunc("POST /login", h.Auth.Login)
 

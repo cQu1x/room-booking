@@ -11,7 +11,6 @@ type AuthHandler struct {
 	authSvc ports.AuthService
 }
 
-// NewAuthHandler создаёт обработчик аутентификации.
 func NewAuthHandler(authSvc ports.AuthService) *AuthHandler {
 	return &AuthHandler{authSvc: authSvc}
 }
@@ -32,7 +31,7 @@ func NewAuthHandler(authSvc ports.AuthService) *AuthHandler {
 // @Router      /dummyLogin [post]
 func (h *AuthHandler) DummyLogin(w http.ResponseWriter, r *http.Request) {
 	var req dummyLoginRequest
-	if err := decodeJSON(r, &req); err != nil {
+	if err := decodeJSON(r, w, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
 		return
 	}
@@ -43,7 +42,7 @@ func (h *AuthHandler) DummyLogin(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.authSvc.DummyLogin(r.Context(), entity.Role(req.Role))
 	if err != nil {
-		writeInternalError(w)
+		writeInternalError(w, err)
 		return
 	}
 
@@ -62,7 +61,7 @@ func (h *AuthHandler) DummyLogin(w http.ResponseWriter, r *http.Request) {
 // @Router      /register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
-	if err := decodeJSON(r, &req); err != nil {
+	if err := decodeJSON(r, w, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
 		return
 	}
@@ -74,7 +73,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	user, err := h.authSvc.Register(r.Context(), req.Email, req.Password, entity.Role(req.Role))
 	if err != nil {
 		if !writeDomainError(w, err) {
-			writeInternalError(w)
+			writeInternalError(w, err)
 		}
 		return
 	}
@@ -95,7 +94,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Router      /login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
-	if err := decodeJSON(r, &req); err != nil {
+	if err := decodeJSON(r, w, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
 		return
 	}
@@ -107,7 +106,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token, err := h.authSvc.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if !writeDomainError(w, err) {
-			writeInternalError(w)
+			writeInternalError(w, err)
 		}
 		return
 	}

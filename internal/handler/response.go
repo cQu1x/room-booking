@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
-
-	"github.com/avito-internships/test-backend-1-cQu1x/internal/domain/entity"
 )
 
-func decodeJSON(r *http.Request, dst any) error {
+func decodeJSON(r *http.Request, w http.ResponseWriter, dst any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		return fmt.Errorf("decode json: %w", err)
 	}
@@ -41,39 +41,31 @@ type errorResponse struct {
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("writeJSON encode error: %v", err)
+	}
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, errorResponse{Error: errorBody{Code: code, Message: message}})
 }
 
-func writeInternalError(w http.ResponseWriter) {
+func writeInternalError(w http.ResponseWriter, err error) {
+	log.Printf("internal error: %v", err)
 	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
 }
 
+// httpError is satisfied by entity.DomainError via duck typing.
+type httpError interface {
+	HTTPStatus() int
+	HTTPCode() string
+}
+
 func writeDomainError(w http.ResponseWriter, err error) bool {
-	switch {
-	case errors.Is(err, entity.ErrRoomNotFound):
-		writeError(w, http.StatusNotFound, "ROOM_NOT_FOUND", err.Error())
-	case errors.Is(err, entity.ErrScheduleExists):
-		writeError(w, http.StatusConflict, "SCHEDULE_EXISTS", err.Error())
-	case errors.Is(err, entity.ErrSlotNotFound):
-		writeError(w, http.StatusNotFound, "SLOT_NOT_FOUND", err.Error())
-	case errors.Is(err, entity.ErrSlotAlreadyBooked):
-		writeError(w, http.StatusConflict, "SLOT_ALREADY_BOOKED", err.Error())
-	case errors.Is(err, entity.ErrSlotInPast):
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
-	case errors.Is(err, entity.ErrBookingNotFound):
-		writeError(w, http.StatusNotFound, "BOOKING_NOT_FOUND", err.Error())
-	case errors.Is(err, entity.ErrForbidden):
-		writeError(w, http.StatusForbidden, "FORBIDDEN", err.Error())
-	case errors.Is(err, entity.ErrEmailAlreadyTaken):
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
-	case errors.Is(err, entity.ErrInvalidCredentials):
-		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", err.Error())
-	default:
-		return false
+	var he httpError
+	if errors.As(err, &he) {
+		writeError(w, he.HTTPStatus(), he.HTTPCode(), err.Error())
+		return true
 	}
-	return true
+	return false
 }

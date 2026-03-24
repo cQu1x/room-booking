@@ -11,7 +11,6 @@ import (
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/testutil"
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/usecase"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -152,7 +151,7 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_UserNotFound(t *testing.T) {
 	userRepo := &testutil.MockUserRepo{
 		GetUserByEmailFn: func(_ context.Context, _ string) (*entity.User, error) {
-			return nil, pgx.ErrNoRows
+			return nil, entity.ErrUserNotFound
 		},
 	}
 

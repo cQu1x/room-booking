@@ -10,7 +10,6 @@ type RoomHandler struct {
 	roomSvc ports.RoomService
 }
 
-// NewRoomHandler создаёт обработчик переговорок.
 func NewRoomHandler(roomSvc ports.RoomService) *RoomHandler {
 	return &RoomHandler{roomSvc: roomSvc}
 }
@@ -28,7 +27,7 @@ func NewRoomHandler(roomSvc ports.RoomService) *RoomHandler {
 func (h *RoomHandler) List(w http.ResponseWriter, r *http.Request) {
 	rooms, err := h.roomSvc.List(r.Context())
 	if err != nil {
-		writeInternalError(w)
+		writeInternalError(w, err)
 		return
 	}
 
@@ -54,7 +53,7 @@ func (h *RoomHandler) List(w http.ResponseWriter, r *http.Request) {
 // @Router      /rooms/create [post]
 func (h *RoomHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req createRoomRequest
-	if err := decodeJSON(r, &req); err != nil {
+	if err := decodeJSON(r, w, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
 		return
 	}
@@ -65,7 +64,7 @@ func (h *RoomHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	room, err := h.roomSvc.Create(r.Context(), req.Name, req.Description, req.Capacity)
 	if err != nil {
-		writeInternalError(w)
+		writeInternalError(w, err)
 		return
 	}
 

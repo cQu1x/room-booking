@@ -1,17 +1,22 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/ports"
 	"github.com/google/uuid"
 )
 
+const (
+	minPageSize = 1
+	maxPageSize = 100
+)
+
 type BookingHandler struct {
 	bookingSvc ports.BookingService
 }
 
-// NewBookingHandler создаёт обработчик бронирований.
 func NewBookingHandler(bookingSvc ports.BookingService) *BookingHandler {
 	return &BookingHandler{bookingSvc: bookingSvc}
 }
@@ -37,7 +42,7 @@ func NewBookingHandler(bookingSvc ports.BookingService) *BookingHandler {
 // @Router      /bookings/create [post]
 func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req createBookingRequest
-	if err := decodeJSON(r, &req); err != nil {
+	if err := decodeJSON(r, w, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body")
 		return
 	}
@@ -50,7 +55,7 @@ func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	booking, err := h.bookingSvc.Create(r.Context(), userID, req.SlotID, req.CreateConferenceLink)
 	if err != nil {
 		if !writeDomainError(w, err) {
-			writeInternalError(w)
+			writeInternalError(w, err)
 		}
 		return
 	}
@@ -83,18 +88,14 @@ func (h *BookingHandler) ListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if page < 1 {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "page must be >= 1")
-		return
-	}
-	if pageSize < 1 || pageSize > 100 {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "pageSize must be between 1 and 100")
+	if err := pageSizeInBounds(pageSize); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
 		return
 	}
 
 	bookings, total, err := h.bookingSvc.ListAll(r.Context(), page, pageSize)
 	if err != nil {
-		writeInternalError(w)
+		writeInternalError(w, err)
 		return
 	}
 
@@ -126,7 +127,7 @@ func (h *BookingHandler) ListMy(w http.ResponseWriter, r *http.Request) {
 	userID := ctxGetUserID(r)
 	bookings, err := h.bookingSvc.ListMy(r.Context(), userID)
 	if err != nil {
-		writeInternalError(w)
+		writeInternalError(w, err)
 		return
 	}
 
@@ -165,10 +166,17 @@ func (h *BookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	booking, err := h.bookingSvc.Cancel(r.Context(), userID, bookingID)
 	if err != nil {
 		if !writeDomainError(w, err) {
-			writeInternalError(w)
+			writeInternalError(w, err)
 		}
 		return
 	}
 
 	writeJSON(w, http.StatusOK, bookingResponse{Booking: bookingToDTO(*booking)})
+}
+
+func pageSizeInBounds(pageSize int) error {
+	if pageSize < minPageSize || pageSize > maxPageSize {
+		return errors.New("pageSize must be between 1 and 100")
+	}
+	return nil
 }

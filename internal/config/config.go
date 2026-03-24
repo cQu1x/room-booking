@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -24,7 +25,6 @@ type DBConfig struct {
 	SSLMode  string
 }
 
-// DSN возвращает строку подключения к базе данных.
 func (c DBConfig) DSN() string {
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -36,7 +36,6 @@ type JWTConfig struct {
 	Secret string
 }
 
-// LoadConfig загружает конфигурацию из переменных окружения.
 func LoadConfig() Config {
 	return Config{
 		App: AppConfig{
@@ -51,13 +50,18 @@ func LoadConfig() Config {
 			SSLMode:  GetEnv("DB_SSL_MODE", "disable"),
 		},
 		JWT: JWTConfig{
-			Secret: GetEnv("JWT_SECRET", "secret"),
+			Secret: os.Getenv("JWT_SECRET"),
 		},
 	}
-
 }
 
-// GetEnv возвращает значение переменной окружения или defaultValue, если она не задана.
+func (c Config) Validate() error {
+	if c.JWT.Secret == "" {
+		return errors.New("JWT_SECRET environment variable must be set")
+	}
+	return nil
+}
+
 func GetEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value

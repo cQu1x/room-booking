@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/domain/entity"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -13,36 +15,37 @@ type BookingRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewBookingRepository создаёт репозиторий бронирований на основе пула соединений.
 func NewBookingRepository(db *pgxpool.Pool) *BookingRepository {
 	return &BookingRepository{db: db}
 }
 
-// CreateBooking сохраняет новое бронирование в базе данных.
 func (r *BookingRepository) CreateBooking(ctx context.Context, booking *entity.Booking) error {
 	const query = `INSERT INTO bookings (id, user_id, slot_id, status, conference_link, created_at)
 	 VALUES ($1, $2, $3, $4, $5, $6)`
 	_, err := r.db.Exec(ctx, query,
 		booking.ID, booking.UserID, booking.SlotID, booking.Status, booking.ConferenceLink, booking.CreatedAt,
 	)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return entity.ErrSlotAlreadyBooked
+		}
+	}
 	return err
 }
 
-// GetBookingByID возвращает бронирование по идентификатору.
 func (r *BookingRepository) GetBookingByID(ctx context.Context, id uuid.UUID) (*entity.Booking, error) {
 	const query = `SELECT id, user_id, slot_id, status, conference_link, created_at FROM bookings WHERE id = $1`
 	row := r.db.QueryRow(ctx, query, id)
 	return scanBooking(row)
 }
 
-// CancelBooking переводит статус бронирования в «отменено».
 func (r *BookingRepository) CancelBooking(ctx context.Context, id uuid.UUID) error {
 	const query = `UPDATE bookings SET status = $1 WHERE id = $2`
 	_, err := r.db.Exec(ctx, query, entity.BookingStatusCancelled, id)
 	return err
 }
 
-// ListAllBookings возвращает постраничный список всех бронирований и общее количество записей.
 func (r *BookingRepository) ListAllBookings(ctx context.Context, page, pageSize int) ([]entity.Booking, int, error) {
 	const countQuery = `SELECT COUNT(*) FROM bookings`
 	var total int
@@ -72,7 +75,6 @@ func (r *BookingRepository) ListAllBookings(ctx context.Context, page, pageSize 
 	return bookings, total, nil
 }
 
-// ListByUserID возвращает будущие бронирования пользователя, отсортированные по времени начала слота.
 func (r *BookingRepository) ListByUserID(ctx context.Context, userID uuid.UUID) ([]entity.Booking, error) {
 	const query = `
 		SELECT b.id, b.user_id, b.slot_id, b.status, b.conference_link, b.created_at
@@ -101,7 +103,6 @@ func (r *BookingRepository) ListByUserID(ctx context.Context, userID uuid.UUID) 
 	return bookings, nil
 }
 
-// IsSlotBooked возвращает true, если на слот есть активное бронирование.
 func (r *BookingRepository) IsSlotBooked(ctx context.Context, slotID uuid.UUID) (bool, error) {
 	const query = `SELECT EXISTS(SELECT 1 FROM bookings WHERE slot_id = $1 AND status = $2)`
 	var exists bool

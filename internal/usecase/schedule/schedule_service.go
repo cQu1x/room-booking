@@ -18,7 +18,6 @@ type Service struct {
 	slotService  ports.SlotService
 }
 
-// NewService создаёт сервис расписаний.
 func NewService(scheduleRepo ports.ScheduleRepository, roomRepo ports.RoomRepository, slotService ports.SlotService) *Service {
 	return &Service{
 		scheduleRepo: scheduleRepo,
@@ -27,7 +26,6 @@ func NewService(scheduleRepo ports.ScheduleRepository, roomRepo ports.RoomReposi
 	}
 }
 
-// Create создаёт расписание для переговорки и предгенерирует слоты на ближайшие 7 дней.
 func (s *Service) Create(ctx context.Context, roomID uuid.UUID, daysOfWeek []int, startTime, endTime string) (*entity.Schedule, error) {
 	for _, d := range daysOfWeek {
 		if d < 1 || d > 7 {
@@ -63,6 +61,7 @@ func (s *Service) Create(ctx context.Context, roomID uuid.UUID, daysOfWeek []int
 	from := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	to := from.AddDate(0, 0, slotGenerationDays)
 	if err := s.slotService.GenerateForSchedule(ctx, schedule, from, to); err != nil {
+		_ = s.scheduleRepo.DeleteSchedule(ctx, schedule.ID)
 		return nil, err
 	}
 
