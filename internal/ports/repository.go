@@ -9,31 +9,34 @@ import (
 )
 
 type RoomRepository interface {
-	Create(ctx context.Context, room *entity.Room) error
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.Room, error)
-	List(ctx context.Context) ([]entity.Room, error)
+	CreateRoom(ctx context.Context, room *entity.Room) (*entity.Room, error)
+	GetRoomByID(ctx context.Context, id uuid.UUID) (*entity.Room, error)
+	ListRooms(ctx context.Context) ([]entity.Room, error)
 }
 
 type ScheduleRepository interface {
-	Create(ctx context.Context, schedule *entity.Schedule) error
-	GetByRoomID(ctx context.Context, roomID uuid.UUID) (*entity.Schedule, error)
+	CreateSchedule(ctx context.Context, schedule *entity.Schedule) error
+	GetScheduleByRoomID(ctx context.Context, roomID uuid.UUID) (*entity.Schedule, error)
 }
 
 type SlotRepository interface {
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.Slot, error)
-	ListAvailable(ctx context.Context, roomID uuid.UUID, date time.Time) ([]entity.Slot, error)
+	CreateSlots(ctx context.Context, slots []entity.Slot) error
+	GetSlotByID(ctx context.Context, id uuid.UUID) (*entity.Slot, error)
+	GetMaxSlotDate(ctx context.Context, roomID uuid.UUID) (*time.Time, error)
+	ListAvailableSlots(ctx context.Context, roomID uuid.UUID, date time.Time) ([]entity.Slot, error)
 }
 
 type BookingRepository interface {
-	Create(ctx context.Context, booking *entity.Booking) error
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.Booking, error)
-	Cancel(ctx context.Context, id uuid.UUID) error
-	ListAll(ctx context.Context, page, pageSize int) ([]entity.Booking, int, error)
+	CreateBooking(ctx context.Context, booking *entity.Booking) error
+	GetBookingByID(ctx context.Context, id uuid.UUID) (*entity.Booking, error)
+	CancelBooking(ctx context.Context, id uuid.UUID) error
+	ListAllBookings(ctx context.Context, page, pageSize int) ([]entity.Booking, int, error)
+	ListByUserID(ctx context.Context, userID uuid.UUID) ([]entity.Booking, error)
 	IsSlotBooked(ctx context.Context, slotID uuid.UUID) (bool, error)
 }
 
 type UserRepository interface {
-	Create(ctx context.Context, user *entity.User) error
-	GetByEmail(ctx context.Context, email string) (*entity.User, error)
-	GetByID(ctx context.Context, id uuid.UUID) (*entity.User, error)
+	CreateUser(ctx context.Context, user *entity.User) (entity.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (*entity.User, error)
 }
