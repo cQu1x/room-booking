@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/avito-internships/test-backend-1-cQu1x/docs"
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/config"
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/handler"
 	"github.com/avito-internships/test-backend-1-cQu1x/internal/infrastructure/jwt"

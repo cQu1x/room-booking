@@ -17,7 +17,6 @@ type Handlers struct {
 	Booking  *BookingHandler
 }
 
-// NewRouter собирает HTTP-маршрутизатор и подключает все обработчики с нужными middleware.
 func NewRouter(h Handlers, tokenManager *jwtpkg.TokenManager) http.Handler {
 	mux := http.NewServeMux()
 
@@ -30,7 +29,7 @@ func NewRouter(h Handlers, tokenManager *jwtpkg.TokenManager) http.Handler {
 
 	// ── Public ────────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /_info", info)
-	// DummyLogin is only registered in non-production environments.
+
 	if os.Getenv("APP_ENV") != "production" {
 		mux.HandleFunc("POST /dummyLogin", h.Auth.DummyLogin)
 	}
